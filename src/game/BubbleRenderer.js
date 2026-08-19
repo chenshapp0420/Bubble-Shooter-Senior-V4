@@ -8,14 +8,6 @@ export const BUBBLE_PALETTE = {
   fluorescentPink: { base: '#a26778', light: '#f2d0d4', shadow: '#653746', edge: '#ffedf0' }
 };
 
-export const SPECIAL_LABEL_STYLES = Object.freeze({
-  '貪': { fill: '#ffe36a', stroke: '#3d2353', shadow: 'rgba(61, 35, 83, 0.72)' },
-  '嗔': { fill: '#fffaf0', stroke: '#4b201b', shadow: 'rgba(75, 32, 27, 0.72)' },
-  '痴': { fill: '#315d9b', stroke: '#fffaf0', shadow: 'rgba(255, 250, 240, 0.82)' },
-  '慢': { fill: '#274e2d', stroke: '#fffaf0', shadow: 'rgba(255, 250, 240, 0.82)' },
-  '疑': { fill: '#fffaf0', stroke: '#3d2353', shadow: 'rgba(61, 35, 83, 0.72)' }
-});
-
 export class BubbleRenderer {
   constructor(context, diameter) {
     this.context = context;
@@ -69,8 +61,6 @@ export class BubbleRenderer {
     gradient.addColorStop(1, palette.shadow);
 
     context.beginPath();
-    // The renderer radius is the same source of truth as the portrait grid
-    // pitch, so adjacent bubbles meet instead of exposing parchment seams.
     context.arc(x, y, radius, 0, Math.PI * 2);
     context.fillStyle = gradient;
     context.fill();
@@ -96,12 +86,16 @@ export class BubbleRenderer {
     context.fill();
 
     if (metadata.specialLabel) {
-      const labelStyle = SPECIAL_LABEL_STYLES[metadata.specialLabel]
-        ?? { fill: '#fffaf0', stroke: '#2f2418', shadow: 'rgba(47, 36, 24, 0.72)' };
+      const labelStyles = {
+        貪: { fill: '#ffe36a', stroke: '#3d2353' },
+        嗔: { fill: '#fffaf0', stroke: '#4b201b' },
+        痴: { fill: '#315d9b', stroke: '#fffaf0' },
+        慢: { fill: '#274e2d', stroke: '#fffaf0' },
+        疑: { fill: '#fffaf0', stroke: '#3d2353' }
+      };
+      const labelStyle = labelStyles[metadata.specialLabel] ?? { fill: '#fffaf0', stroke: '#2f2418' };
       context.save();
       context.globalAlpha = 0.96;
-      context.shadowColor = labelStyle.shadow;
-      context.shadowBlur = Math.max(1.5, radius * 0.12);
       context.strokeStyle = labelStyle.stroke;
       context.lineWidth = Math.max(2, radius * 0.1);
       context.fillStyle = labelStyle.fill;

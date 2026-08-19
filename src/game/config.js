@@ -76,8 +76,6 @@ export const GAME_CONFIG = {
 export const PORTRAIT_PRESENTATION = {
   logicalWidth: 390,
   logicalHeight: 650,
-  // Match the portrait hex pitch to the rendered bubble so adjacent cells
-  // form one readable cluster without changing physics coordinates.
   bubbleDiameter: 40.5,
   bottomSafetyClearance: 16,
   launcherInternalPadding: 16
@@ -206,8 +204,6 @@ export function getRuntimeGameConfig(viewportWidth, viewportHeight) {
   // Keep the presentation bubble diameter and grid pitch nearly identical so
   // adjacent portrait bubbles retain the dense MSN-style hex packing.
   const cellWidth = 40.5;
-  // Hex rows are sqrt(3) / 2 of the diameter apart; this removes the
-  // diagonal gaps while keeping the existing row/column topology intact.
   const cellHeight = 35.1;
   const columns = 9;
   const boardWidth = (columns - 1) * cellWidth

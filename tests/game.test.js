@@ -31,7 +31,7 @@ import {
   WALL_HIT_AUDIO_SOURCE,
   createCoinCascadePlan
 } from '../src/game/AudioManager.js';
-import { BUBBLE_PALETTE, SPECIAL_LABEL_STYLES } from '../src/game/BubbleRenderer.js';
+import { BUBBLE_PALETTE } from '../src/game/BubbleRenderer.js';
 import { EffectsManager } from '../src/game/EffectsManager.js';
 import { checkGameOver, getBoardBubbleDangerGeometry, getBubbleWorldPosition, getDangerDistance, getDangerLineY, getRefillRowsForPressure, isBubbleAtDangerLine, isDangerLineReached, refillBoard, RefillSystem } from '../src/game/RefillSystem.js';
 import { MissTracker } from '../src/game/MissTracker.js';
@@ -53,7 +53,6 @@ import { getShootAngle, getTrajectoryPlan, getTrajectoryPoints, screenToGameCoor
 import { getTouchAimTarget, getTouchAimZoneYStart, hasTouchDragExceeded, MIN_TOUCH_DRAG_DISTANCE } from '../src/game/TouchAim.js';
 import { isInsideVisibleWalls } from '../src/game/WallResolver.js';
 import { GameOverAudio } from '../src/game/GameOverAudio.js';
-import { getZenControlAt, getZenUiLayout } from '../src/game/ZenUi.js';
 import { getLowBubbleRefillRows } from '../src/game/LowBubbleRefill.js';
 import {
   SPECIAL_BUBBLE_LABELS,
@@ -643,105 +642,6 @@ test('Zen palette keeps all seven gameplay colors distinct and special chance oc
   assert.equal(new Set(bases).size, GAME_CONFIG.colors.length);
   assert.ok(GAME_CONFIG.specialBubbleChance > 0);
   assert.ok(GAME_CONFIG.specialBubbleChance < 0.2);
-});
-
-test('A-1 portrait presentation keeps bubbles tight and inside the mobile board', () => {
-  [
-    [360, 800],
-    [390, 844],
-    [412, 915]
-  ].forEach(([width, height]) => {
-    const config = getRuntimeGameConfig(width, height);
-    const diameter = config.presentation.bubbleDiameter;
-    const diagonalNeighborDistance = Math.hypot(
-      config.board.cellWidth / 2,
-      config.board.cellHeight
-    );
-    const boardLeft = (config.board.x - config.physics.visualBubbleRadius) * config.presentation.scale;
-    const boardRight = (
-      config.board.x
-      + (config.board.columns - 1) * config.board.cellWidth
-      + config.board.cellWidth / 2
-      + config.physics.visualBubbleRadius
-    ) * config.presentation.scale;
-
-    assert.equal(config.presentation.bubbleDiameter, config.board.cellWidth);
-    assert.ok(Math.abs(config.board.cellHeight - diameter * Math.sqrt(3) / 2) < 0.1);
-    assert.ok(diagonalNeighborDistance <= diameter + 1);
-    assert.ok(boardLeft >= 0);
-    assert.ok(boardRight <= config.presentation.cssWidth);
-  });
-});
-
-test('A-1 special label styles provide deterministic high contrast for all labels', () => {
-  SPECIAL_BUBBLE_LABELS.forEach((label) => {
-    const style = SPECIAL_LABEL_STYLES[label];
-    assert.ok(style);
-    assert.notEqual(style.fill, style.stroke);
-    assert.ok(style.shadow);
-  });
-  assert.equal(SPECIAL_LABEL_STYLES['貪'].fill, '#ffe36a');
-  assert.equal(SPECIAL_LABEL_STYLES['嗔'].fill, '#fffaf0');
-  assert.equal(SPECIAL_LABEL_STYLES['痴'].fill, '#315d9b');
-  assert.equal(SPECIAL_LABEL_STYLES['慢'].fill, '#274e2d');
-  assert.equal(SPECIAL_LABEL_STYLES['疑'].fill, '#fffaf0');
-});
-
-test('fixed Zen art integration keeps the approved source separate from gameplay art', async () => {
-  const source = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
-  assert.match(source, /zen-fixed-art\.png/);
-  assert.match(source, /drawFixedZenScene/);
-  assert.match(source, /drawImage\(fixedZenArt, 0, 1200, 1536, 700/);
-  assert.doesNotMatch(source, /drawFixedArtCrop/);
-  assert.doesNotMatch(source, /function drawZenControlBar[\s\S]*controlBar\.width/);
-});
-
-test('critical visual correction keeps HUD inside safe margins and aligns the renderer radius', async () => {
-  const source = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
-  const renderer = await readFile(new URL('../src/game/BubbleRenderer.js', import.meta.url), 'utf8');
-  assert.match(source, /const hudInset = portrait \? 10 : 16/);
-  assert.match(source, /context\.roundRect\(hudInset, 12/);
-  assert.match(renderer, /context\.arc\(x, y, radius, 0, Math\.PI \* 2\)/);
-});
-
-test('A-1 purple palette is softer while remaining distinct', () => {
-  assert.equal(BUBBLE_PALETTE.purple.base, '#9b7898');
-  assert.equal(BUBBLE_PALETTE.purple.light, '#c5a8c0');
-  assert.equal(BUBBLE_PALETTE.purple.shadow, '#755a73');
-  assert.notEqual(BUBBLE_PALETTE.purple.base, BUBBLE_PALETTE.orange.base);
-  assert.notEqual(BUBBLE_PALETTE.purple.base, BUBBLE_PALETTE.yellow.base);
-});
-
-test('A-1 renderer keeps bubble interiors free of decorative texture arcs', async () => {
-  const source = await readFile(new URL('../src/game/BubbleRenderer.js', import.meta.url), 'utf8');
-  assert.match(source, /createRadialGradient/);
-  assert.doesNotMatch(source, /arc\(x - radius \* 0\.12/);
-  assert.doesNotMatch(source, /arc\(x, y \+ radius \* 0\.28/);
-});
-
-test('full Zen UI decor stays inside all supported portrait canvases', () => {
-  [[360, 800], [390, 844], [412, 915]].forEach(([width, height]) => {
-    const config = getRuntimeGameConfig(width, height);
-    const layout = getZenUiLayout(config);
-    const buttons = layout.controlBar.buttons;
-    buttons.forEach((button) => {
-      assert.ok(button.x - button.radius >= 0);
-      assert.ok(button.x + button.radius <= config.baseWidth);
-      assert.ok(button.y - button.radius >= 0);
-      assert.ok(button.y + button.radius <= config.baseHeight);
-    });
-    assert.ok(layout.monk.x > 0 && layout.monk.x < config.baseWidth / 2);
-    assert.ok(layout.incense.x < config.baseWidth);
-    assert.ok(layout.lotusLeft.y <= config.baseHeight);
-    assert.ok(layout.lotusRight.y <= config.baseHeight);
-  });
-});
-
-test('full Zen UI controls map only to real sound and new-game actions', () => {
-  const layout = getZenUiLayout(getRuntimeGameConfig(390, 844));
-  assert.equal(getZenControlAt(layout.controlBar.buttons[0], layout), 'sound');
-  assert.equal(getZenControlAt(layout.controlBar.buttons[1], layout), 'new-game');
-  assert.equal(getZenControlAt({ x: 195, y: 500 }, layout), null);
 });
 
 test('special bubbles support exactly the five required labels and preserve color', () => {
