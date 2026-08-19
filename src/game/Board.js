@@ -1,11 +1,13 @@
 import { gridToWorld } from './GridMath.js';
 import { createClusteredBoardRows } from './BoardPattern.js';
+import { chooseSpecialLabel, DEFAULT_SPECIAL_BUBBLE_CHANCE } from './SpecialBubbles.js';
 
 export class Board {
   constructor(boardConfig, colors, options = {}) {
     this.config = boardConfig;
     this.colors = colors;
     this.random = options.random ?? Math.random;
+    this.specialBubbleChance = options.specialBubbleChance ?? DEFAULT_SPECIAL_BUBBLE_CHANCE * 0;
     this.bubbles = [];
     this.createInitialBubbles();
   }
@@ -74,12 +76,19 @@ export class Board {
       return null;
     }
 
+    const specialLabel = options.specialLabel === undefined
+      ? chooseSpecialLabel(this.random, this.specialBubbleChance)
+      : options.specialLabel;
     const bubble = {
       col,
       row,
       bubbleType,
       ...position
     };
+
+    if (specialLabel) {
+      bubble.specialLabel = specialLabel;
+    }
 
     this.bubbles.push(bubble);
     return bubble;

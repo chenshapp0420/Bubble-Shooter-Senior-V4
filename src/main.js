@@ -34,6 +34,8 @@ import { StageManager } from './game/StageManager.js';
 import { CLEAR_DURATION_MS, renderClearCelebration } from './game/ClearCelebration.js';
 import { isPointInRestartButton, renderGameOverOverlay } from './game/GameOverOverlay.js';
 import { getLowBubbleRefillRows } from './game/LowBubbleRefill.js';
+import { getUniqueSpecialBubbles } from './game/SpecialBubbles.js';
+import { SPECIAL_BUBBLE_BONUS } from './game/ScoreManager.js';
 import {
   getShootAngle,
   getTrajectoryPlan,
@@ -90,7 +92,9 @@ const DEBUG_WALLS = false;
 const DEBUG_DANGER = window.location.hostname === '127.0.0.1'
   || window.location.hostname === 'localhost';
 
-const board = new Board(GAME_CONFIG.board, GAME_CONFIG.colors);
+const board = new Board(GAME_CONFIG.board, GAME_CONFIG.colors, {
+  specialBubbleChance: GAME_CONFIG.specialBubbleChance
+});
 const bubbleRenderer = new BubbleRenderer(
   context,
   GAME_CONFIG.presentation?.bubbleDiameter ?? GAME_CONFIG.physics.bubbleDiameter
@@ -121,6 +125,7 @@ let touchAimStart = null;
 let cachedCanvasBounds = null;
 let gameOver = false;
 let roundClear = null;
+let specialBonusPopups = [];
 let previousTime = performance.now();
 let accumulator = 0;
 let lastDangerRuntimeLog = '';
@@ -424,6 +429,7 @@ function restartGame() {
   gameOver = false;
   boardCountAtGameOver = null;
   roundClear = null;
+  specialBonusPopups = [];
   pointerIsDown = false;
   activePointerId = null;
   touchAimStart = null;
@@ -452,6 +458,7 @@ function enterGameOver() {
   activeShot = null;
   resolving = false;
   roundClear = null;
+  specialBonusPopups = [];
   gameOver = true;
   boardCountAtGameOver = board.getOccupiedBubbles().length;
   refillSystem.reset();
@@ -698,22 +705,76 @@ function handleLostPointerCapture(event) {
 
 function drawBackground() {
   const background = context.createLinearGradient(0, 0, 0, GAME_CONFIG.baseHeight);
-  background.addColorStop(0, '#102b4b');
-  background.addColorStop(0.56, '#0a203a');
-  background.addColorStop(1, '#071326');
+  background.addColorStop(0, '#eadfc7');
+  background.addColorStop(0.56, '#d8d1bc');
+  background.addColorStop(1, '#b7b69f');
   context.fillStyle = background;
   context.fillRect(0, 0, GAME_CONFIG.baseWidth, GAME_CONFIG.baseHeight);
+
+  context.save();
+  context.globalAlpha = 0.26;
+  context.fillStyle = '#f7f1df';
+  for (let y = 0; y < GAME_CONFIG.baseHeight; y += 18) {
+    context.fillRect(0, y, GAME_CONFIG.baseWidth, 1);
+  }
+  context.globalAlpha = 0.22;
+  context.fillStyle = '#87907a';
+  context.beginPath();
+  context.moveTo(0, 240);
+  context.quadraticCurveTo(150, 130, 310, 245);
+  context.quadraticCurveTo(470, 95, 690, 250);
+  context.quadraticCurveTo(800, 165, 900, 225);
+  context.lineTo(900, 380);
+  context.lineTo(0, 380);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 0.18;
+  context.fillStyle = '#596b5d';
+  context.beginPath();
+  context.moveTo(0, 320);
+  context.quadraticCurveTo(190, 225, 390, 335);
+  context.quadraticCurveTo(590, 215, 900, 330);
+  context.lineTo(900, 480);
+  context.lineTo(0, 480);
+  context.closePath();
+  context.fill();
+  context.globalAlpha = 0.34;
+  context.fillStyle = '#fff6d9';
+  context.beginPath();
+  context.arc(760, 112, 46, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  context.save();
+  context.strokeStyle = 'rgba(61, 78, 55, 0.35)';
+  context.lineWidth = 7;
+  context.beginPath();
+  context.moveTo(24, 0);
+  context.quadraticCurveTo(42, 150, 28, 330);
+  context.moveTo(75, 0);
+  context.quadraticCurveTo(55, 170, 80, 385);
+  context.stroke();
+  context.lineWidth = 2;
+  for (let y = 64; y < 380; y += 54) {
+    context.beginPath();
+    context.moveTo(28, y);
+    context.lineTo(65, y - 20);
+    context.moveTo(50, y + 18);
+    context.lineTo(88, y - 4);
+    context.stroke();
+  }
+  context.restore();
 
   const centerX = GAME_CONFIG.baseWidth / 2;
   const centerY = GAME_CONFIG.baseHeight * 0.4;
   const arenaGlow = context.createRadialGradient(centerX, centerY, 80, centerX, centerY, Math.max(300, GAME_CONFIG.baseWidth * 0.52));
-  arenaGlow.addColorStop(0, 'rgba(48, 107, 157, 0.16)');
-  arenaGlow.addColorStop(0.7, 'rgba(25, 71, 112, 0.06)');
-  arenaGlow.addColorStop(1, 'rgba(7, 19, 38, 0)');
+  arenaGlow.addColorStop(0, 'rgba(255, 251, 231, 0.28)');
+  arenaGlow.addColorStop(0.7, 'rgba(255, 250, 228, 0.08)');
+  arenaGlow.addColorStop(1, 'rgba(109, 110, 89, 0)');
   context.fillStyle = arenaGlow;
   context.fillRect(0, 55, GAME_CONFIG.baseWidth, Math.max(0, GAME_CONFIG.baseHeight - 55));
 
-  context.strokeStyle = 'rgba(136, 181, 226, 0.14)';
+  context.strokeStyle = 'rgba(83, 94, 72, 0.22)';
   context.lineWidth = 1;
   context.beginPath();
   context.moveTo(wallBounds.visibleLeftWall, 55);
@@ -895,8 +956,8 @@ function drawBoardArea() {
     boardWidth * 0.72
   );
 
-  boardGlow.addColorStop(0, 'rgba(5, 15, 31, 0.24)');
-  boardGlow.addColorStop(1, 'rgba(5, 15, 31, 0)');
+  boardGlow.addColorStop(0, 'rgba(255, 250, 225, 0.26)');
+  boardGlow.addColorStop(1, 'rgba(255, 250, 225, 0)');
   context.fillStyle = boardGlow;
   context.fillRect(x - 32, y - 30, boardWidth + 12, boardHeight + 60);
 }
@@ -950,6 +1011,7 @@ function drawBoard() {
       id: `board-${bubble.col}-${bubble.row}`,
       row: bubble.row,
       col: bubble.col,
+      specialLabel: bubble.specialLabel,
       source: 'BOARD'
     });
   });
@@ -973,6 +1035,20 @@ function drawActiveShot() {
       source: 'ACTIVE_SHOT'
     });
   }
+}
+
+function drawSpecialBonusPopups() {
+  context.save();
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  specialBonusPopups.forEach((popup) => {
+    const progress = Math.min(1, popup.elapsedMs / 850);
+    context.globalAlpha = 1 - progress;
+    context.fillStyle = '#73551b';
+    context.font = '800 22px system-ui, sans-serif';
+    context.fillText(`+${SPECIAL_BUBBLE_BONUS}`, popup.x, popup.y - progress * 34);
+  });
+  context.restore();
 }
 
 function drawDebugWalls() {
@@ -1002,6 +1078,7 @@ function renderScene() {
   shooter.draw(context);
   drawActiveShot();
   effectsManager.render(context, bubbleRenderer);
+  drawSpecialBonusPopups();
   drawRoundClear();
   const dangerState = checkDangerLineAgainstRenderedGeometry();
   if (DEBUG_DANGER && dangerState) {
@@ -1146,6 +1223,17 @@ function updatePhysics() {
         if (resolution.floating.length > 0) {
           scoreManager.addFloating(resolution.floating.length);
         }
+        const removedSpecialBubbles = getUniqueSpecialBubbles([
+          ...resolution.matched,
+          ...resolution.floating
+        ]);
+        if (removedSpecialBubbles.length > 0) {
+          scoreManager.addSpecialBonus(removedSpecialBubbles.length);
+          removedSpecialBubbles.forEach((bubble) => {
+            const position = getBubbleRenderPosition(bubble, GAME_CONFIG.board);
+            specialBonusPopups.push({ ...position, elapsedMs: 0 });
+          });
+        }
 
         if (board.isBoardCleared()) {
           const stage = stageManager.getStage();
@@ -1205,6 +1293,9 @@ function frame(currentTime) {
   }
   scoreManager.update(elapsed);
   effectsManager.update(elapsed);
+  specialBonusPopups = specialBonusPopups
+    .map((popup) => ({ ...popup, elapsedMs: popup.elapsedMs + elapsed }))
+    .filter((popup) => popup.elapsedMs < 850);
   if (roundClear) {
     roundClear.elapsedMs += elapsed;
     if (roundClear.elapsedMs >= CLEAR_DURATION_MS) {

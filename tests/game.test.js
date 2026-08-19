@@ -54,6 +54,11 @@ import { getTouchAimTarget, getTouchAimZoneYStart, hasTouchDragExceeded, MIN_TOU
 import { isInsideVisibleWalls } from '../src/game/WallResolver.js';
 import { GameOverAudio } from '../src/game/GameOverAudio.js';
 import { getLowBubbleRefillRows } from '../src/game/LowBubbleRefill.js';
+import {
+  SPECIAL_BUBBLE_LABELS,
+  SPECIAL_BUBBLE_BONUS,
+  getUniqueSpecialBubbles
+} from '../src/game/SpecialBubbles.js';
 
 function createBoard() {
   return new Board(GAME_CONFIG.board, GAME_CONFIG.colors);
@@ -123,10 +128,10 @@ test('config exposes seven supported high-contrast bubble colors', () => {
   ]);
   assert.equal(GAME_CONFIG.physics.visualBubbleRadius, 25);
   assert.equal(GAME_CONFIG.physics.physicsCollisionRadius, 23);
-  assert.equal(BUBBLE_PALETTE.red.base, '#FF2A1A');
-  assert.equal(BUBBLE_PALETTE.orange.base, '#FF8C00');
-  assert.equal(BUBBLE_PALETTE.purple.base, '#7D2FE8');
-  assert.equal(BUBBLE_PALETTE.fluorescentPink.base, '#FF1493');
+  assert.equal(BUBBLE_PALETTE.red.base, '#b58a35');
+  assert.equal(BUBBLE_PALETTE.orange.base, '#a86f43');
+  assert.equal(BUBBLE_PALETTE.purple.base, '#8f748f');
+  assert.equal(BUBBLE_PALETTE.fluorescentPink.base, '#a26778');
   assert.notEqual(BUBBLE_PALETTE.red.base, BUBBLE_PALETTE.orange.base);
   assert.notEqual(BUBBLE_PALETTE.purple.base, BUBBLE_PALETTE.fluorescentPink.base);
 });
@@ -630,6 +635,70 @@ test('GameOverAudio exposes a single first-phrase source and safe reset', () => 
   audio.setMuted(true);
   assert.equal(audio.playOnce(), false);
   audio.reset();
+});
+
+test('Zen palette keeps all seven gameplay colors distinct and special chance occasional', () => {
+  const bases = GAME_CONFIG.colors.map((color) => BUBBLE_PALETTE[color].base);
+  assert.equal(new Set(bases).size, GAME_CONFIG.colors.length);
+  assert.ok(GAME_CONFIG.specialBubbleChance > 0);
+  assert.ok(GAME_CONFIG.specialBubbleChance < 0.2);
+});
+
+test('special bubbles support exactly the five required labels and preserve color', () => {
+  assert.deepEqual(SPECIAL_BUBBLE_LABELS, ['貪', '嗔', '痴', '慢', '疑']);
+  assert.equal(SPECIAL_BUBBLE_LABELS[2], '痴');
+
+  const board = new Board({ ...GAME_CONFIG.board, initialFillRows: 0 }, GAME_CONFIG.colors);
+  const special = board.addBubble(0, 0, 'green', { specialLabel: '痴' });
+  assert.equal(special.bubbleType, 'green');
+  assert.equal(special.specialLabel, '痴');
+});
+
+test('special bubble participates in normal color matching', () => {
+  const board = new Board({ ...GAME_CONFIG.board, initialFillRows: 0 }, GAME_CONFIG.colors);
+  board.addBubble(0, 0, 'blue', { specialLabel: '貪' });
+  board.addBubble(1, 0, 'blue');
+  board.addBubble(2, 0, 'blue');
+  const result = resolveAfterLanding(board, 1, 0);
+  assert.equal(result.matched.length, 3);
+  assert.equal(result.matched.find((bubble) => bubble.specialLabel)?.specialLabel, '貪');
+});
+
+test('hitting but not removing a special bubble awards no bonus', () => {
+  const board = new Board({ ...GAME_CONFIG.board, initialFillRows: 0 }, GAME_CONFIG.colors);
+  board.addBubble(0, 0, 'purple', { specialLabel: '嗔' });
+  board.addBubble(1, 0, 'purple');
+  const result = resolveAfterLanding(board, 1, 0);
+  const score = new ScoreManager();
+  assert.equal(result.matched.length, 0);
+  assert.equal(score.addSpecialBonus(getUniqueSpecialBubbles(result.matched).length), 0);
+  assert.equal(score.getScore(), 0);
+});
+
+test('removing a special bubble awards the bonus exactly once', () => {
+  const board = new Board({ ...GAME_CONFIG.board, initialFillRows: 0 }, GAME_CONFIG.colors);
+  board.addBubble(0, 0, 'red', { specialLabel: '痴' });
+  board.addBubble(1, 0, 'red');
+  board.addBubble(2, 0, 'red');
+  const result = resolveAfterLanding(board, 1, 0);
+  const score = new ScoreManager();
+  const unique = getUniqueSpecialBubbles([...result.matched, ...result.matched]);
+  assert.equal(unique.length, 1);
+  assert.equal(score.addSpecialBonus(unique.length), SPECIAL_BUBBLE_BONUS);
+  assert.equal(score.getScore(), SPECIAL_BUBBLE_BONUS);
+});
+
+test('floating removal of a special bubble awards the bonus once', () => {
+  const board = new Board({ ...GAME_CONFIG.board, initialFillRows: 0 }, GAME_CONFIG.colors);
+  board.addBubble(0, 0, 'green');
+  board.addBubble(1, 0, 'green');
+  board.addBubble(2, 0, 'green');
+  board.addBubble(5, 5, 'yellow', { specialLabel: '疑' });
+  const result = resolveAfterLanding(board, 1, 0);
+  const score = new ScoreManager();
+  assert.equal(result.floating.length, 1);
+  assert.equal(result.floating[0].specialLabel, '疑');
+  assert.equal(score.addSpecialBonus(getUniqueSpecialBubbles(result.floating).length), SPECIAL_BUBBLE_BONUS);
 });
 
 test('V2 replacement audio assets wire only wall hit and Game Over events', async () => {

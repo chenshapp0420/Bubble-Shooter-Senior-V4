@@ -40,6 +40,8 @@ export const GAME_CONFIG = {
     'fluorescentPink'
   ],
 
+  specialBubbleChance: 0.08,
+
   missesBeforeRefill: 3,
   initialChances: 3,
   dangerLineY: 625,

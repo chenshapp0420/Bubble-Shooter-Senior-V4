@@ -1,11 +1,11 @@
 export const BUBBLE_PALETTE = {
-  red: { base: '#FF2A1A', light: '#FFE2DE', shadow: '#A50B08', edge: '#FFFFFF' },
-  orange: { base: '#FF8C00', light: '#FFE6B3', shadow: '#A94B00', edge: '#FFFFFF' },
-  yellow: { base: '#FFE600', light: '#FFF9B0', shadow: '#A88400', edge: '#FFFFFF' },
-  green: { base: '#19D647', light: '#D2FFD9', shadow: '#087C27', edge: '#FFFFFF' },
-  blue: { base: '#159BFF', light: '#D5EEFF', shadow: '#07509B', edge: '#FFFFFF' },
-  purple: { base: '#7D2FE8', light: '#E6D4FF', shadow: '#35107D', edge: '#FFFFFF' },
-  fluorescentPink: { base: '#FF1493', light: '#FFD1EA', shadow: '#990052', edge: '#FFFFFF' }
+  red: { base: '#b58a35', light: '#fff0b8', shadow: '#6e4a18', edge: '#fff8dd' },
+  orange: { base: '#a86f43', light: '#f4d5aa', shadow: '#5d3421', edge: '#fff1d2' },
+  yellow: { base: '#e5d8ad', light: '#fffbed', shadow: '#9b8751', edge: '#fffef3' },
+  green: { base: '#738857', light: '#dbe6bc', shadow: '#405538', edge: '#f0f3d7' },
+  blue: { base: '#70888b', light: '#dceceb', shadow: '#3e595d', edge: '#edf7ee' },
+  purple: { base: '#8f748f', light: '#ead9e5', shadow: '#563f57', edge: '#f9eef4' },
+  fluorescentPink: { base: '#a26778', light: '#f2d0d4', shadow: '#653746', edge: '#ffedf0' }
 };
 
 export class BubbleRenderer {
@@ -91,6 +91,32 @@ export class BubbleRenderer {
     context.strokeStyle = palette.shadow;
     context.lineWidth = radius * 0.11;
     context.stroke();
+
+    context.save();
+    context.globalAlpha = 0.16;
+    context.strokeStyle = palette.light;
+    context.lineWidth = Math.max(1, radius * 0.045);
+    context.beginPath();
+    context.arc(x - radius * 0.12, y + radius * 0.08, radius * 0.52, -2.4, -0.55);
+    context.arc(x + radius * 0.2, y + radius * 0.18, radius * 0.28, 0.3, 2.25);
+    context.stroke();
+    context.restore();
+
+    if (metadata.specialLabel) {
+      context.save();
+      context.globalAlpha = 0.96;
+      context.strokeStyle = '#fff7d6';
+      context.lineWidth = Math.max(2, radius * 0.08);
+      context.beginPath();
+      context.arc(x, y, radius * 0.88, 0, Math.PI * 2);
+      context.stroke();
+      context.fillStyle = '#473529';
+      context.font = `900 ${Math.max(16, radius * 0.86)}px serif`;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(metadata.specialLabel, x, y + radius * 0.03);
+      context.restore();
+    }
     context.restore();
   }
 }

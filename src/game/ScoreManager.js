@@ -1,6 +1,9 @@
+import { SPECIAL_BUBBLE_BONUS } from './SpecialBubbles.js';
+
 const SCORE_PER_MATCHED_BUBBLE = 10;
 const SCORE_PER_FLOATING_BUBBLE = 20;
 export const BOARD_CLEAR_BONUS = 5000;
+export { SPECIAL_BUBBLE_BONUS };
 
 export function getBoardClearBonus(stage) {
   return BOARD_CLEAR_BONUS + Math.max(0, stage - 1) * 2500;
@@ -28,6 +31,13 @@ export class ScoreManager {
     this.score += count * SCORE_PER_FLOATING_BUBBLE;
     this.pulseElapsedMs = 0;
     return this.score;
+  }
+
+  addSpecialBonus(count) {
+    const bonus = Math.max(0, count) * SPECIAL_BUBBLE_BONUS;
+    this.score += bonus;
+    if (bonus > 0) this.pulseElapsedMs = 0;
+    return bonus;
   }
 
   addBoardClear(stage) {

@@ -25,7 +25,8 @@ export function findConnectedSameColor(board, startCol, startRow) {
     connected.push({
       col: current.col,
       row: current.row,
-      bubbleType: currentBubble.bubbleType
+      bubbleType: currentBubble.bubbleType,
+      ...(currentBubble.specialLabel ? { specialLabel: currentBubble.specialLabel } : {})
     });
 
     getNeighbors(current.col, current.row, board.config).forEach(([col, row]) => {
@@ -67,7 +68,8 @@ export function findFloatingBubbles(board) {
     .map((bubble) => ({
       col: bubble.col,
       row: bubble.row,
-      bubbleType: bubble.bubbleType
+      bubbleType: bubble.bubbleType,
+      ...(bubble.specialLabel ? { specialLabel: bubble.specialLabel } : {})
     }));
 }
 

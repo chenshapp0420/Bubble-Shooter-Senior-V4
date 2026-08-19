@@ -24,7 +24,7 @@ function createRefillTransitionEffect(beforeBubbles, afterBubbles, boardConfig, 
         const start = previous ?? gridToWorld(bubble.col, bubble.row - shiftRows, boardConfig);
         const x = start.x + (bubble.x - start.x) * eased;
         const y = start.y + (bubble.y - start.y) * eased;
-        bubbleRenderer.drawBubble(x, y, bubble.bubbleType, 1, { source: 'REFILL_EFFECT', row: bubble.row, col: bubble.col });
+        bubbleRenderer.drawBubble(x, y, bubble.bubbleType, 1, { source: 'REFILL_EFFECT', row: bubble.row, col: bubble.col, specialLabel: bubble.specialLabel });
       });
 
       if (progress < 0.42) {
@@ -62,7 +62,7 @@ function createRefillEffect(cell, boardConfig, durationMs) {
 
       context.save();
       context.globalAlpha = 0.7 + progress * 0.3;
-      bubbleRenderer.drawBubble(position.x, position.y, cell.bubbleType, scale, { source: 'REFILL_EFFECT', row: cell.row, col: cell.col });
+      bubbleRenderer.drawBubble(position.x, position.y, cell.bubbleType, scale, { source: 'REFILL_EFFECT', row: cell.row, col: cell.col, specialLabel: cell.specialLabel });
       context.restore();
     }
   };
@@ -98,7 +98,7 @@ function createPopEffect(cell, boardConfig, delayMs, onStart) {
         position.y,
         cell.bubbleType,
         1 + Math.min(0.08, progress * 0.08),
-        { source: 'POP_EFFECT', row: cell.row, col: cell.col }
+        { source: 'POP_EFFECT', row: cell.row, col: cell.col, specialLabel: cell.specialLabel }
       );
 
       context.globalAlpha = (1 - progress) * 0.65;
@@ -145,7 +145,7 @@ function createFloatingEffect(cell, boardConfig, onStart) {
 
       context.save();
       context.globalAlpha = 1 - Math.max(0, progress - 0.75) / 0.25;
-      bubbleRenderer.drawBubble(position.x, currentY, cell.bubbleType, 1, { source: 'FLOATING_EFFECT', row: cell.row, col: cell.col });
+      bubbleRenderer.drawBubble(position.x, currentY, cell.bubbleType, 1, { source: 'FLOATING_EFFECT', row: cell.row, col: cell.col, specialLabel: cell.specialLabel });
       context.restore();
     }
   };
