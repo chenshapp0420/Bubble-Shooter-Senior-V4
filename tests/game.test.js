@@ -53,6 +53,7 @@ import { getShootAngle, getTrajectoryPlan, getTrajectoryPoints, screenToGameCoor
 import { getTouchAimTarget, getTouchAimZoneYStart, hasTouchDragExceeded, MIN_TOUCH_DRAG_DISTANCE } from '../src/game/TouchAim.js';
 import { isInsideVisibleWalls } from '../src/game/WallResolver.js';
 import { GameOverAudio } from '../src/game/GameOverAudio.js';
+import { getZenControlAt, getZenUiLayout } from '../src/game/ZenUi.js';
 import { getLowBubbleRefillRows } from '../src/game/LowBubbleRefill.js';
 import {
   SPECIAL_BUBBLE_LABELS,
@@ -691,6 +692,31 @@ test('A-1 renderer keeps bubble interiors free of decorative texture arcs', asyn
   assert.match(source, /createRadialGradient/);
   assert.doesNotMatch(source, /arc\(x - radius \* 0\.12/);
   assert.doesNotMatch(source, /arc\(x, y \+ radius \* 0\.28/);
+});
+
+test('full Zen UI decor stays inside all supported portrait canvases', () => {
+  [[360, 800], [390, 844], [412, 915]].forEach(([width, height]) => {
+    const config = getRuntimeGameConfig(width, height);
+    const layout = getZenUiLayout(config);
+    const buttons = layout.controlBar.buttons;
+    buttons.forEach((button) => {
+      assert.ok(button.x - button.radius >= 0);
+      assert.ok(button.x + button.radius <= config.baseWidth);
+      assert.ok(button.y - button.radius >= 0);
+      assert.ok(button.y + button.radius <= config.baseHeight);
+    });
+    assert.ok(layout.monk.x > 0 && layout.monk.x < config.baseWidth / 2);
+    assert.ok(layout.incense.x < config.baseWidth);
+    assert.ok(layout.lotusLeft.y <= config.baseHeight);
+    assert.ok(layout.lotusRight.y <= config.baseHeight);
+  });
+});
+
+test('full Zen UI controls map only to real sound and new-game actions', () => {
+  const layout = getZenUiLayout(getRuntimeGameConfig(390, 844));
+  assert.equal(getZenControlAt(layout.controlBar.buttons[0], layout), 'sound');
+  assert.equal(getZenControlAt(layout.controlBar.buttons[1], layout), 'new-game');
+  assert.equal(getZenControlAt({ x: 195, y: 500 }, layout), null);
 });
 
 test('special bubbles support exactly the five required labels and preserve color', () => {

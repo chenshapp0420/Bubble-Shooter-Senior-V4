@@ -27,23 +27,39 @@ export class Shooter {
 
     context.save();
 
-    // A low-profile launch base keeps the shooter visually connected to the
-    // play field without turning it into an information panel.
-    context.fillStyle = 'rgba(4, 13, 27, 0.78)';
+    // A Zen basin is drawn around the existing shooter origin. The origin is
+    // deliberately unchanged; this is only a visual housing for the bubble.
+    const basinWidth = 92;
+    const basinHeight = 30;
+    const basinGradient = context.createLinearGradient(x, y + 8, x, y + 32);
+    basinGradient.addColorStop(0, '#d9b45c');
+    basinGradient.addColorStop(0.18, '#704b29');
+    basinGradient.addColorStop(1, '#251d1a');
+    context.fillStyle = 'rgba(34, 24, 20, 0.34)';
     context.beginPath();
-    context.ellipse(x, y + 20, 72, 17, 0, 0, Math.PI * 2);
+    context.ellipse(x, y + 27, basinWidth * 0.58, 9, 0, 0, Math.PI * 2);
     context.fill();
 
-    context.fillStyle = '#244a70';
+    context.fillStyle = basinGradient;
     context.beginPath();
-    context.moveTo(x - 45, y + 19);
-    context.quadraticCurveTo(x, y - 2, x + 45, y + 19);
-    context.lineTo(x + 34, y + 25);
-    context.lineTo(x - 34, y + 25);
+    context.moveTo(x - basinWidth / 2, y + 12);
+    context.quadraticCurveTo(x, y + basinHeight * 0.92, x + basinWidth / 2, y + 12);
+    context.quadraticCurveTo(x + basinWidth * 0.34, y + 32, x, y + 34);
+    context.quadraticCurveTo(x - basinWidth * 0.34, y + 32, x - basinWidth / 2, y + 12);
     context.closePath();
     context.fill();
-    context.strokeStyle = 'rgba(150, 198, 236, 0.55)';
-    context.lineWidth = 1.5;
+    context.strokeStyle = '#e6c86e';
+    context.lineWidth = 2;
+    context.stroke();
+
+    context.fillStyle = '#122b3a';
+    context.beginPath();
+    context.ellipse(x, y + 13, basinWidth * 0.42, 8, 0, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = 'rgba(231, 202, 113, 0.85)';
+    context.lineWidth = 2.5;
+    context.beginPath();
+    context.ellipse(x, y + 13, basinWidth * 0.44, 9, 0, 0, Math.PI * 2);
     context.stroke();
 
     this.bubbleRenderer.drawBubble(x, y, this.currentBubble, 1, { source: 'SHOOTER_CURRENT' });

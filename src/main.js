@@ -47,6 +47,7 @@ import {
   getTouchAimZoneYStart,
   hasTouchDragExceeded
 } from './game/TouchAim.js';
+import { getZenControlAt, getZenUiLayout } from './game/ZenUi.js';
 
 const FIXED_STEP_MS = 1000 / 60;
 const canvas = document.querySelector('#game-canvas');
@@ -323,6 +324,20 @@ function updateAim(clientX, clientY, applyTouchOffset = false) {
 
 function handlePointerDown(event) {
   event.preventDefault();
+  const control = getZenControlAt(
+    getGamePoint(event.clientX, event.clientY),
+    getZenUiLayout(GAME_CONFIG)
+  );
+  if (control) {
+    if (control === 'sound') {
+      audioManager.resume();
+      audioManager.toggleMute();
+    } else if (control === 'new-game') {
+      restartGame();
+    }
+    pointerIsDown = false;
+    return;
+  }
   if (gameOver) {
     pointerIsDown = false;
     if (GAME_CONFIG.layoutMode === 'PORTRAIT_MOBILE' && activePointerId === null) {
@@ -703,110 +718,303 @@ function handleLostPointerCapture(event) {
   }
 }
 
-function drawBackground() {
-  const background = context.createLinearGradient(0, 0, 0, GAME_CONFIG.baseHeight);
-  background.addColorStop(0, '#eadfc7');
-  background.addColorStop(0.56, '#d8d1bc');
-  background.addColorStop(1, '#b7b69f');
-  context.fillStyle = background;
-  context.fillRect(0, 0, GAME_CONFIG.baseWidth, GAME_CONFIG.baseHeight);
-
+function drawBamboo(x, top, direction, height, unit) {
+  const contextX = x;
   context.save();
-  context.globalAlpha = 0.26;
-  context.fillStyle = '#f7f1df';
-  for (let y = 0; y < GAME_CONFIG.baseHeight; y += 18) {
-    context.fillRect(0, y, GAME_CONFIG.baseWidth, 1);
-  }
-  context.globalAlpha = 0.22;
-  context.fillStyle = '#87907a';
+  context.strokeStyle = 'rgba(52, 75, 47, 0.52)';
+  context.lineWidth = Math.max(3, 6 * unit);
   context.beginPath();
-  context.moveTo(0, 240);
-  context.quadraticCurveTo(150, 130, 310, 245);
-  context.quadraticCurveTo(470, 95, 690, 250);
-  context.quadraticCurveTo(800, 165, 900, 225);
-  context.lineTo(900, 380);
-  context.lineTo(0, 380);
+  context.moveTo(contextX, top);
+  context.quadraticCurveTo(contextX + direction * 22 * unit, height * 0.28, contextX + direction * 3 * unit, height);
+  context.stroke();
+  context.lineWidth = Math.max(1, 2 * unit);
+  for (let y = 48 * unit; y < height; y += 52 * unit) {
+    context.beginPath();
+    context.moveTo(contextX - 8 * unit, y);
+    context.lineTo(contextX + 8 * unit, y);
+    context.stroke();
+  }
+  context.strokeStyle = 'rgba(68, 91, 54, 0.55)';
+  context.lineWidth = Math.max(1, 2 * unit);
+  for (let y = 55 * unit; y < height * 0.78; y += 62 * unit) {
+    context.beginPath();
+    context.moveTo(contextX + direction * 3 * unit, y + 4 * unit);
+    context.quadraticCurveTo(contextX + direction * 34 * unit, y - 12 * unit, contextX + direction * 44 * unit, y - 25 * unit);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function drawPavilion(pavilion, unit) {
+  const { x, y } = pavilion;
+  context.save();
+  context.globalAlpha = 0.34;
+  context.fillStyle = '#43514a';
+  context.strokeStyle = '#354139';
+  context.lineWidth = Math.max(1, 2 * unit);
+  context.beginPath();
+  context.moveTo(x - 58 * unit, y - 26 * unit);
+  context.quadraticCurveTo(x, y - 48 * unit, x + 58 * unit, y - 26 * unit);
+  context.lineTo(x + 48 * unit, y - 18 * unit);
+  context.lineTo(x - 48 * unit, y - 18 * unit);
   context.closePath();
+  context.fill();
+  context.stroke();
+  context.fillRect(x - 43 * unit, y - 18 * unit, 6 * unit, 42 * unit);
+  context.fillRect(x + 37 * unit, y - 18 * unit, 6 * unit, 42 * unit);
+  context.beginPath();
+  context.moveTo(x - 55 * unit, y + 24 * unit);
+  context.lineTo(x + 55 * unit, y + 24 * unit);
+  context.stroke();
+  context.restore();
+}
+
+function drawLotus(x, y, scale, color = '#c88888') {
+  context.save();
+  context.globalAlpha = 0.76;
+  context.fillStyle = '#4d6d57';
+  context.beginPath();
+  context.ellipse(x - 10 * scale, y + 2 * scale, 24 * scale, 8 * scale, -0.2, 0, Math.PI * 2);
+  context.ellipse(x + 15 * scale, y + 3 * scale, 20 * scale, 7 * scale, 0.2, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = color;
+  for (const angle of [-0.75, -0.35, 0, 0.35, 0.75]) {
+    context.beginPath();
+    context.ellipse(x + angle * 17 * scale, y - 5 * scale, 7 * scale, 17 * scale, angle, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.fillStyle = '#f0d29d';
+  context.beginPath();
+  context.arc(x, y - 4 * scale, 3 * scale, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+function drawNoviceMonk(monk) {
+  const { x, y, scale } = monk;
+  context.save();
+  context.globalAlpha = 0.9;
+  context.fillStyle = '#b45b42';
+  context.beginPath();
+  context.ellipse(x, y + 19 * scale, 19 * scale, 22 * scale, 0, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = '#e5a26f';
+  context.beginPath();
+  context.arc(x, y - 3 * scale, 14 * scale, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = '#d7b85e';
+  context.beginPath();
+  context.arc(x, y - 7 * scale, 14 * scale, Math.PI, Math.PI * 2);
+  context.fill();
+  context.fillStyle = '#35251d';
+  context.beginPath();
+  context.arc(x - 5 * scale, y - 2 * scale, 1.5 * scale, 0, Math.PI * 2);
+  context.arc(x + 5 * scale, y - 2 * scale, 1.5 * scale, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = '#7b3b32';
+  context.lineWidth = Math.max(1, 1.5 * scale);
+  context.beginPath();
+  context.arc(x, y + 2 * scale, 5 * scale, 0.15, Math.PI - 0.15);
+  context.stroke();
+  context.restore();
+}
+
+function drawIncenseBurner(incense) {
+  const { x, y, scale } = incense;
+  context.save();
+  context.globalAlpha = 0.86;
+  context.strokeStyle = 'rgba(238, 231, 193, 0.4)';
+  context.lineWidth = Math.max(1, 2 * scale);
+  for (let index = 0; index < 3; index += 1) {
+    context.beginPath();
+    context.moveTo(x + (index - 1) * 5 * scale, y - 3 * scale);
+    context.quadraticCurveTo(x + (index - 1) * 9 * scale, y - 22 * scale, x + (index - 2) * 3 * scale, y - 34 * scale);
+    context.stroke();
+  }
+  context.strokeStyle = '#7d482a';
+  context.lineWidth = Math.max(1, 2 * scale);
+  for (let index = 0; index < 3; index += 1) {
+    context.beginPath();
+    context.moveTo(x + (index - 1) * 5 * scale, y + 2 * scale);
+    context.lineTo(x + (index - 1) * 5 * scale, y - 29 * scale);
+    context.stroke();
+  }
+  const vessel = context.createLinearGradient(x, y, x, y + 24 * scale);
+  vessel.addColorStop(0, '#d4a64d');
+  vessel.addColorStop(0.25, '#65432c');
+  vessel.addColorStop(1, '#251e1b');
+  context.fillStyle = vessel;
+  context.beginPath();
+  context.ellipse(x, y + 6 * scale, 23 * scale, 7 * scale, 0, 0, Math.PI * 2);
+  context.fill();
+  context.fillRect(x - 17 * scale, y + 5 * scale, 34 * scale, 17 * scale);
+  context.beginPath();
+  context.ellipse(x, y + 22 * scale, 17 * scale, 5 * scale, 0, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+function drawZenLowerDecorations() {
+  const layout = getZenUiLayout(GAME_CONFIG);
+  drawLotus(layout.lotusLeft.x, layout.lotusLeft.y, layout.lotusLeft.scale, '#d49a9a');
+  drawLotus(layout.lotusRight.x, layout.lotusRight.y, layout.lotusRight.scale, '#d0a06e');
+  drawNoviceMonk(layout.monk);
+  drawIncenseBurner(layout.incense);
+}
+
+function drawZenControlBar() {
+  const layout = getZenUiLayout(GAME_CONFIG);
+  const { controlBar } = layout;
+  context.save();
+  context.fillStyle = 'rgba(42, 35, 28, 0.76)';
+  context.strokeStyle = 'rgba(231, 194, 103, 0.72)';
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.roundRect(controlBar.x, controlBar.y, controlBar.width, controlBar.height, controlBar.height / 2);
+  context.fill();
+  context.stroke();
+  controlBar.buttons.forEach((button) => {
+    context.fillStyle = '#b68a3b';
+    context.strokeStyle = '#f1d27b';
+    context.beginPath();
+    context.arc(button.x, button.y, button.radius, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.fillStyle = '#2f2418';
+    context.font = `800 ${Math.max(10, button.radius * 0.58)}px system-ui, sans-serif`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(button.id === 'sound' ? (audioManager.muted ? 'OFF' : '音') : '新', button.x, button.y);
+  });
+  context.restore();
+}
+
+function drawBackground() {
+  const width = GAME_CONFIG.baseWidth;
+  const height = GAME_CONFIG.baseHeight;
+  const portrait = GAME_CONFIG.layoutMode === 'PORTRAIT_MOBILE';
+  const unit = getZenUiLayout(GAME_CONFIG).unit;
+  const background = context.createLinearGradient(0, 0, 0, height);
+  background.addColorStop(0, '#f1e7cf');
+  background.addColorStop(0.5, '#d9d4bf');
+  background.addColorStop(1, '#a9b09a');
+  context.fillStyle = background;
+  context.fillRect(0, 0, width, height);
+
+  // Rice-paper grain and a quiet ink-wash glow keep the board readable.
+  context.save();
+  context.globalAlpha = 0.16;
+  context.fillStyle = '#fff8e3';
+  for (let y = 0; y < height; y += Math.max(10, 18 * unit)) {
+    context.fillRect(0, y, width, 1);
+  }
+  const glow = context.createRadialGradient(width * 0.5, height * 0.35, 20, width * 0.5, height * 0.35, width * 0.8);
+  glow.addColorStop(0, 'rgba(255, 252, 230, 0.7)');
+  glow.addColorStop(1, 'rgba(255, 252, 230, 0)');
+  context.fillStyle = glow;
+  context.fillRect(0, 0, width, height);
+  context.restore();
+
+  // Moon, distant mountains, and near hills are behind every gameplay layer.
+  context.save();
+  context.globalAlpha = 0.42;
+  context.fillStyle = '#fff4c9';
+  context.beginPath();
+  context.arc(width * 0.77, height * (portrait ? 0.21 : 0.17), 38 * unit, 0, Math.PI * 2);
   context.fill();
   context.globalAlpha = 0.18;
-  context.fillStyle = '#596b5d';
+  context.fillStyle = '#75847a';
   context.beginPath();
-  context.moveTo(0, 320);
-  context.quadraticCurveTo(190, 225, 390, 335);
-  context.quadraticCurveTo(590, 215, 900, 330);
-  context.lineTo(900, 480);
-  context.lineTo(0, 480);
+  context.moveTo(0, height * 0.39);
+  context.quadraticCurveTo(width * 0.17, height * 0.19, width * 0.36, height * 0.37);
+  context.quadraticCurveTo(width * 0.58, height * 0.12, width * 0.79, height * 0.38);
+  context.quadraticCurveTo(width * 0.9, height * 0.25, width, height * 0.34);
+  context.lineTo(width, height * 0.57);
+  context.lineTo(0, height * 0.57);
   context.closePath();
   context.fill();
-  context.globalAlpha = 0.34;
-  context.fillStyle = '#fff6d9';
+  context.globalAlpha = 0.24;
+  context.fillStyle = '#52695d';
   context.beginPath();
-  context.arc(760, 112, 46, 0, Math.PI * 2);
+  context.moveTo(0, height * 0.49);
+  context.quadraticCurveTo(width * 0.22, height * 0.31, width * 0.45, height * 0.5);
+  context.quadraticCurveTo(width * 0.7, height * 0.32, width, height * 0.48);
+  context.lineTo(width, height * 0.66);
+  context.lineTo(0, height * 0.66);
+  context.closePath();
   context.fill();
   context.restore();
 
+  // Calm lake bands add depth below the board without competing with aim dots.
+  const lakeY = height * (portrait ? 0.61 : 0.58);
+  const lake = context.createLinearGradient(0, lakeY, 0, height);
+  lake.addColorStop(0, 'rgba(102, 132, 128, 0.34)');
+  lake.addColorStop(1, 'rgba(54, 87, 84, 0.58)');
+  context.fillStyle = lake;
+  context.fillRect(0, lakeY, width, height - lakeY);
   context.save();
-  context.strokeStyle = 'rgba(61, 78, 55, 0.35)';
-  context.lineWidth = 7;
-  context.beginPath();
-  context.moveTo(24, 0);
-  context.quadraticCurveTo(42, 150, 28, 330);
-  context.moveTo(75, 0);
-  context.quadraticCurveTo(55, 170, 80, 385);
-  context.stroke();
-  context.lineWidth = 2;
-  for (let y = 64; y < 380; y += 54) {
+  context.globalAlpha = 0.24;
+  context.strokeStyle = '#e6e0c4';
+  context.lineWidth = Math.max(1, unit);
+  for (let row = 0; row < 5; row += 1) {
+    const y = lakeY + 18 * unit + row * 19 * unit;
     context.beginPath();
-    context.moveTo(28, y);
-    context.lineTo(65, y - 20);
-    context.moveTo(50, y + 18);
-    context.lineTo(88, y - 4);
+    context.moveTo(width * 0.12, y);
+    context.quadraticCurveTo(width * 0.32, y - 5 * unit, width * 0.5, y);
+    context.quadraticCurveTo(width * 0.7, y + 5 * unit, width * 0.9, y);
     context.stroke();
   }
   context.restore();
 
-  const centerX = GAME_CONFIG.baseWidth / 2;
-  const centerY = GAME_CONFIG.baseHeight * 0.4;
-  const arenaGlow = context.createRadialGradient(centerX, centerY, 80, centerX, centerY, Math.max(300, GAME_CONFIG.baseWidth * 0.52));
-  arenaGlow.addColorStop(0, 'rgba(255, 251, 231, 0.28)');
-  arenaGlow.addColorStop(0.7, 'rgba(255, 250, 228, 0.08)');
-  arenaGlow.addColorStop(1, 'rgba(109, 110, 89, 0)');
-  context.fillStyle = arenaGlow;
-  context.fillRect(0, 55, GAME_CONFIG.baseWidth, Math.max(0, GAME_CONFIG.baseHeight - 55));
+  // Bamboo stays at the frame edges and never crosses the board.
+  drawBamboo(18 * unit, 0, 1, height * 0.58, unit);
+  drawBamboo(width - 20 * unit, 0, -1, height * 0.48, unit);
+  drawPavilion(getZenUiLayout(GAME_CONFIG).pavilion, unit);
 
-  context.strokeStyle = 'rgba(83, 94, 72, 0.22)';
+  context.save();
+  context.strokeStyle = 'rgba(55, 70, 54, 0.25)';
   context.lineWidth = 1;
   context.beginPath();
-  context.moveTo(wallBounds.visibleLeftWall, 55);
-  context.lineTo(wallBounds.visibleLeftWall, GAME_CONFIG.baseHeight - 35);
-  context.moveTo(wallBounds.visibleRightWall, 55);
-  context.lineTo(wallBounds.visibleRightWall, GAME_CONFIG.baseHeight - 35);
+  context.moveTo(wallBounds.visibleLeftWall, 52 * unit);
+  context.lineTo(wallBounds.visibleLeftWall, height - 42 * unit);
+  context.moveTo(wallBounds.visibleRightWall, 52 * unit);
+  context.lineTo(wallBounds.visibleRightWall, height - 42 * unit);
   context.stroke();
-
-  // The raised opening board owns the upper visual field; the compact HUD
-  // below is the only text kept above it so the first bubble row stays clear.
+  context.restore();
 }
 
 function drawScoreHud() {
   const { chances } = missTracker.getState();
   const filledChances = String.fromCodePoint(9679).repeat(chances);
   const emptyChances = String.fromCodePoint(9675).repeat(GAME_CONFIG.initialChances - chances);
+  const portrait = GAME_CONFIG.layoutMode === 'PORTRAIT_MOBILE';
+  const scoreX = portrait ? 16 : 32;
+  const stageX = GAME_CONFIG.baseWidth / 2;
+  const chancesX = GAME_CONFIG.baseWidth - (portrait ? 16 : 32);
 
   context.save();
+  context.fillStyle = 'rgba(250, 241, 216, 0.82)';
+  context.strokeStyle = 'rgba(102, 74, 42, 0.28)';
+  context.lineWidth = 1;
+  context.beginPath();
+  context.roundRect(10, 8, GAME_CONFIG.baseWidth - 20, portrait ? 42 : 52, 12);
+  context.fill();
+  context.stroke();
   const chanceWarning = chances === 1;
   const warningPulse = chanceWarning ? 0.78 + Math.sin(performance.now() / 110) * 0.22 : 1;
   context.globalAlpha = warningPulse;
-  context.fillStyle = chanceWarning ? '#8B0000' : '#2F2418';
-  context.font = `700 ${GAME_CONFIG.hud.score.fontSize}px system-ui, sans-serif`;
+  context.fillStyle = '#2F2418';
+  context.font = `800 ${portrait ? 16 : 18}px system-ui, sans-serif`;
   context.textBaseline = 'middle';
   context.textAlign = 'left';
   context.fillText(`得分 ${scoreManager.getDisplayScore()}分`, GAME_CONFIG.hud.score.x, GAME_CONFIG.hud.score.baselineY);
-  context.font = `700 ${GAME_CONFIG.hud.stage.fontSize}px system-ui, sans-serif`;
-  context.fillText(`STAGE ${stageManager.getStage()}`, GAME_CONFIG.hud.stage.x, GAME_CONFIG.hud.stage.baselineY);
-  context.font = '700 12px system-ui, sans-serif';
+  context.font = `800 ${portrait ? 16 : 18}px system-ui, sans-serif`;
+  context.textAlign = 'center';
+  context.fillText(`STAGE ${stageManager.getStage()}`, stageX, 29);
+  context.font = `800 ${portrait ? 12 : 14}px system-ui, sans-serif`;
   context.textAlign = 'right';
-  context.fillStyle = '#2F2418';
-  context.fillText(`CHANCES  ${filledChances}${emptyChances}`, GAME_CONFIG.hud.chances.x, GAME_CONFIG.hud.chances.baselineY);
+  context.fillStyle = chanceWarning ? '#8B0000' : '#2F2418';
+  context.fillText(`CHANCES  ${filledChances}${emptyChances}`, chancesX, 29);
   context.restore();
 }
 
@@ -1052,6 +1260,38 @@ function drawSpecialBonusPopups() {
   context.restore();
 }
 
+function drawZenScoreHud() {
+  const { chances } = missTracker.getState();
+  const filledChances = String.fromCodePoint(9679).repeat(chances);
+  const emptyChances = String.fromCodePoint(9675).repeat(GAME_CONFIG.initialChances - chances);
+  const portrait = GAME_CONFIG.layoutMode === 'PORTRAIT_MOBILE';
+  const scoreX = portrait ? 16 : 32;
+  const stageX = GAME_CONFIG.baseWidth / 2;
+  const chancesX = GAME_CONFIG.baseWidth - (portrait ? 16 : 32);
+
+  context.save();
+  context.fillStyle = 'rgba(250, 241, 216, 0.88)';
+  context.strokeStyle = 'rgba(102, 74, 42, 0.32)';
+  context.lineWidth = 1;
+  context.beginPath();
+  context.roundRect(10, 8, GAME_CONFIG.baseWidth - 20, portrait ? 42 : 52, 12);
+  context.fill();
+  context.stroke();
+  context.globalAlpha = chances === 1 ? 0.78 + Math.sin(performance.now() / 110) * 0.22 : 1;
+  context.fillStyle = '#2F2418';
+  context.font = `800 ${portrait ? 16 : 18}px system-ui, sans-serif`;
+  context.textBaseline = 'middle';
+  context.textAlign = 'left';
+  context.fillText(`SCORE ${scoreManager.getDisplayScore()}`, scoreX, 29);
+  context.textAlign = 'center';
+  context.fillText(`STAGE ${stageManager.getStage()}`, stageX, 29);
+  context.font = `800 ${portrait ? 12 : 14}px system-ui, sans-serif`;
+  context.textAlign = 'right';
+  context.fillStyle = chances === 1 ? '#8B0000' : '#2F2418';
+  context.fillText(`CHANCES ${filledChances}${emptyChances}`, chancesX, 29);
+  context.restore();
+}
+
 function drawDebugWalls() {
   if (!DEBUG_WALLS) return;
   context.save();
@@ -1070,8 +1310,9 @@ function drawDebugWalls() {
 function renderScene() {
   bubbleRenderer.beginFrame();
   drawBackground();
+  drawZenLowerDecorations();
   drawDebugWalls();
-  drawScoreHud();
+  drawZenScoreHud();
   drawDangerLine();
   drawBoardArea();
   drawTrajectory();
@@ -1080,6 +1321,7 @@ function renderScene() {
   drawActiveShot();
   effectsManager.render(context, bubbleRenderer);
   drawSpecialBonusPopups();
+  drawZenControlBar();
   drawRoundClear();
   const dangerState = checkDangerLineAgainstRenderedGeometry();
   if (DEBUG_DANGER && dangerState) {
