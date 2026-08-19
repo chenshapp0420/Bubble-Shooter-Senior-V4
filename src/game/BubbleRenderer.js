@@ -69,7 +69,9 @@ export class BubbleRenderer {
     gradient.addColorStop(1, palette.shadow);
 
     context.beginPath();
-    context.arc(x, y, radius - 1, 0, Math.PI * 2);
+    // The renderer radius is the same source of truth as the portrait grid
+    // pitch, so adjacent bubbles meet instead of exposing parchment seams.
+    context.arc(x, y, radius, 0, Math.PI * 2);
     context.fillStyle = gradient;
     context.fill();
     context.shadowColor = 'transparent';

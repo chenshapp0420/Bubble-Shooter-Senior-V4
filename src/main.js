@@ -724,23 +724,20 @@ function hasFixedZenArt() {
   return fixedZenArt.complete && fixedZenArt.naturalWidth > 0;
 }
 
-function drawFixedArtCrop(sourceX, sourceY, sourceWidth, sourceHeight, destinationX, destinationY, destinationWidth, destinationHeight, alpha = 0.92) {
+function drawFixedZenScene() {
   if (!hasFixedZenArt()) return false;
+  const portrait = GAME_CONFIG.layoutMode === 'PORTRAIT_MOBILE';
+  const sceneWidth = portrait ? GAME_CONFIG.baseWidth : GAME_CONFIG.baseWidth * 0.72;
+  const sceneHeight = sceneWidth * (700 / 1536);
+  const sceneX = (GAME_CONFIG.baseWidth - sceneWidth) / 2;
+  const sceneY = GAME_CONFIG.baseHeight - sceneHeight - (portrait ? 13 : 8);
   context.save();
-  context.globalAlpha = alpha;
-  context.drawImage(
-    fixedZenArt,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    destinationX,
-    destinationY,
-    destinationWidth,
-    destinationHeight
-  );
+  context.globalAlpha = 0.96;
+  // One cohesive lower-scene crop: y=1200..1900 excludes the source HUD,
+  // example bubbles, trajectory dots, and old control strip.
+  context.drawImage(fixedZenArt, 0, 1200, 1536, 700, sceneX, sceneY, sceneWidth, sceneHeight);
   context.restore();
-  return true;
+  return { sceneX, sceneY, sceneWidth, sceneHeight };
 }
 
 function drawBamboo(x, top, direction, height, unit) {
@@ -880,20 +877,7 @@ function drawIncenseBurner(incense) {
 }
 
 function drawZenLowerDecorations() {
-  const layout = getZenUiLayout(GAME_CONFIG);
-  const scale = layout.unit;
-  const fixedArtDrawn = hasFixedZenArt();
-  if (fixedArtDrawn) {
-    drawFixedArtCrop(0, 1220, 260, 560, layout.lotusLeft.x - 46 * scale, layout.lotusLeft.y - 72 * scale, 94 * scale, 104 * scale);
-    drawFixedArtCrop(1280, 1220, 256, 560, layout.lotusRight.x - 47 * scale, layout.lotusRight.y - 72 * scale, 94 * scale, 104 * scale);
-    drawFixedArtCrop(90, 1360, 405, 600, layout.monk.x - 42 * scale, layout.monk.y - 58 * scale, 88 * scale, 118 * scale);
-    drawFixedArtCrop(980, 1410, 430, 470, layout.incense.x - 48 * scale, layout.incense.y - 58 * scale, 98 * scale, 108 * scale);
-  } else {
-    drawLotus(layout.lotusLeft.x, layout.lotusLeft.y, layout.lotusLeft.scale, '#d49a9a');
-    drawLotus(layout.lotusRight.x, layout.lotusRight.y, layout.lotusRight.scale, '#d0a06e');
-    drawNoviceMonk(layout.monk);
-    drawIncenseBurner(layout.incense);
-  }
+  drawFixedZenScene();
 }
 
 function drawZenControlBar() {
@@ -997,14 +981,6 @@ function drawBackground() {
   // Bamboo stays at the frame edges and never crosses the board.
   drawBamboo(18 * unit, 0, 1, height * 0.58, unit);
   drawBamboo(width - 20 * unit, 0, -1, height * 0.48, unit);
-  if (hasFixedZenArt()) {
-    drawFixedArtCrop(0, 0, 190, 980, 0, 0, 74 * unit, height * 0.63, 0.8);
-    drawFixedArtCrop(1340, 0, 196, 980, width - 74 * unit, 0, 74 * unit, height * 0.63, 0.8);
-    const pavilion = getZenUiLayout(GAME_CONFIG).pavilion;
-    drawFixedArtCrop(1010, 720, 440, 500, pavilion.x - 63 * unit, pavilion.y - 34 * unit, 126 * unit, 143 * unit, 0.72);
-  } else {
-    drawPavilion(getZenUiLayout(GAME_CONFIG).pavilion, unit);
-  }
 
   context.save();
   context.strokeStyle = 'rgba(55, 70, 54, 0.25)';
@@ -1032,7 +1008,8 @@ function drawScoreHud() {
   context.strokeStyle = 'rgba(102, 74, 42, 0.28)';
   context.lineWidth = 1;
   context.beginPath();
-  context.roundRect(10, 8, GAME_CONFIG.baseWidth - 20, portrait ? 42 : 52, 12);
+  const hudInset = portrait ? 10 : 16;
+  context.roundRect(hudInset, 12, GAME_CONFIG.baseWidth - hudInset * 2, portrait ? 42 : 52, 12);
   context.fill();
   context.stroke();
   const chanceWarning = chances === 1;
@@ -1309,7 +1286,8 @@ function drawZenScoreHud() {
   context.strokeStyle = 'rgba(102, 74, 42, 0.32)';
   context.lineWidth = 1;
   context.beginPath();
-  context.roundRect(10, 8, GAME_CONFIG.baseWidth - 20, portrait ? 42 : 52, 12);
+  const hudInset = portrait ? 10 : 16;
+  context.roundRect(hudInset, 12, GAME_CONFIG.baseWidth - hudInset * 2, portrait ? 42 : 52, 12);
   context.fill();
   context.stroke();
   context.globalAlpha = chances === 1 ? 0.78 + Math.sin(performance.now() / 110) * 0.22 : 1;
@@ -1317,13 +1295,13 @@ function drawZenScoreHud() {
   context.font = `800 ${portrait ? 16 : 18}px system-ui, sans-serif`;
   context.textBaseline = 'middle';
   context.textAlign = 'left';
-  context.fillText(`SCORE ${scoreManager.getDisplayScore()}`, scoreX, 29);
+  context.fillText(`SCORE ${scoreManager.getDisplayScore()}`, scoreX, 35);
   context.textAlign = 'center';
-  context.fillText(`STAGE ${stageManager.getStage()}`, stageX, 29);
+  context.fillText(`STAGE ${stageManager.getStage()}`, stageX, 35);
   context.font = `800 ${portrait ? 12 : 14}px system-ui, sans-serif`;
   context.textAlign = 'right';
   context.fillStyle = chances === 1 ? '#8B0000' : '#2F2418';
-  context.fillText(`CHANCES ${filledChances}${emptyChances}`, chancesX, 29);
+  context.fillText(`CHANCES ${filledChances}${emptyChances}`, chancesX, 35);
   context.restore();
 }
 

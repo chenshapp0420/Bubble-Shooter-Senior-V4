@@ -690,8 +690,18 @@ test('A-1 special label styles provide deterministic high contrast for all label
 test('fixed Zen art integration keeps the approved source separate from gameplay art', async () => {
   const source = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
   assert.match(source, /zen-fixed-art\.png/);
-  assert.match(source, /drawFixedArtCrop/);
-  assert.doesNotMatch(source, /drawImage\(\s*fixedZenArt\s*,\s*0\s*,\s*0\s*,\s*1536\s*,\s*2048/);
+  assert.match(source, /drawFixedZenScene/);
+  assert.match(source, /drawImage\(fixedZenArt, 0, 1200, 1536, 700/);
+  assert.doesNotMatch(source, /drawFixedArtCrop/);
+  assert.doesNotMatch(source, /function drawZenControlBar[\s\S]*controlBar\.width/);
+});
+
+test('critical visual correction keeps HUD inside safe margins and aligns the renderer radius', async () => {
+  const source = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
+  const renderer = await readFile(new URL('../src/game/BubbleRenderer.js', import.meta.url), 'utf8');
+  assert.match(source, /const hudInset = portrait \? 10 : 16/);
+  assert.match(source, /context\.roundRect\(hudInset, 12/);
+  assert.match(renderer, /context\.arc\(x, y, radius, 0, Math\.PI \* 2\)/);
 });
 
 test('A-1 purple palette is softer while remaining distinct', () => {
