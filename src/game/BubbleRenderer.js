@@ -8,6 +8,14 @@ export const BUBBLE_PALETTE = {
   fluorescentPink: { base: '#a26778', light: '#f2d0d4', shadow: '#653746', edge: '#ffedf0' }
 };
 
+export const SPECIAL_LABEL_STYLES = Object.freeze({
+  '貪': { fill: '#ffe36a', stroke: '#3d2353', shadow: 'rgba(61, 35, 83, 0.72)' },
+  '嗔': { fill: '#fffaf0', stroke: '#4b201b', shadow: 'rgba(75, 32, 27, 0.72)' },
+  '痴': { fill: '#315d9b', stroke: '#fffaf0', shadow: 'rgba(255, 250, 240, 0.82)' },
+  '慢': { fill: '#274e2d', stroke: '#fffaf0', shadow: 'rgba(255, 250, 240, 0.82)' },
+  '疑': { fill: '#fffaf0', stroke: '#3d2353', shadow: 'rgba(61, 35, 83, 0.72)' }
+});
+
 export class BubbleRenderer {
   constructor(context, diameter) {
     this.context = context;
@@ -85,35 +93,21 @@ export class BubbleRenderer {
     context.fillStyle = '#ffffff';
     context.fill();
 
-    context.globalAlpha = 0.16;
-    context.beginPath();
-    context.arc(x, y + radius * 0.28, radius * 0.64, 0.25, Math.PI - 0.25);
-    context.strokeStyle = palette.shadow;
-    context.lineWidth = radius * 0.11;
-    context.stroke();
-
-    context.save();
-    context.globalAlpha = 0.16;
-    context.strokeStyle = palette.light;
-    context.lineWidth = Math.max(1, radius * 0.045);
-    context.beginPath();
-    context.arc(x - radius * 0.12, y + radius * 0.08, radius * 0.52, -2.4, -0.55);
-    context.arc(x + radius * 0.2, y + radius * 0.18, radius * 0.28, 0.3, 2.25);
-    context.stroke();
-    context.restore();
-
     if (metadata.specialLabel) {
+      const labelStyle = SPECIAL_LABEL_STYLES[metadata.specialLabel]
+        ?? { fill: '#fffaf0', stroke: '#2f2418', shadow: 'rgba(47, 36, 24, 0.72)' };
       context.save();
       context.globalAlpha = 0.96;
-      context.strokeStyle = '#fff7d6';
-      context.lineWidth = Math.max(2, radius * 0.08);
-      context.beginPath();
-      context.arc(x, y, radius * 0.88, 0, Math.PI * 2);
-      context.stroke();
-      context.fillStyle = '#473529';
-      context.font = `900 ${Math.max(16, radius * 0.86)}px serif`;
+      context.shadowColor = labelStyle.shadow;
+      context.shadowBlur = Math.max(1.5, radius * 0.12);
+      context.strokeStyle = labelStyle.stroke;
+      context.lineWidth = Math.max(2, radius * 0.1);
+      context.fillStyle = labelStyle.fill;
+      context.font = `900 ${Math.min(28, Math.max(16, radius * 1.05))}px serif`;
       context.textAlign = 'center';
       context.textBaseline = 'middle';
+      context.lineJoin = 'round';
+      context.strokeText(metadata.specialLabel, x, y + radius * 0.03);
       context.fillText(metadata.specialLabel, x, y + radius * 0.03);
       context.restore();
     }

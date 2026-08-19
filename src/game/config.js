@@ -76,7 +76,9 @@ export const GAME_CONFIG = {
 export const PORTRAIT_PRESENTATION = {
   logicalWidth: 390,
   logicalHeight: 650,
-  bubbleDiameter: 38,
+  // Match the portrait hex pitch to the rendered bubble so adjacent cells
+  // form one readable cluster without changing physics coordinates.
+  bubbleDiameter: 40.5,
   bottomSafetyClearance: 16,
   launcherInternalPadding: 16
 };
@@ -203,15 +205,17 @@ export function getRuntimeGameConfig(viewportWidth, viewportHeight) {
   const presentationBubbleDiameter = PORTRAIT_PRESENTATION.bubbleDiameter;
   // Keep the presentation bubble diameter and grid pitch nearly identical so
   // adjacent portrait bubbles retain the dense MSN-style hex packing.
-  const cellWidth = 38;
-  const cellHeight = 38;
+  const cellWidth = 40.5;
+  // Hex rows are sqrt(3) / 2 of the diameter apart; this removes the
+  // diagonal gaps while keeping the existing row/column topology intact.
+  const cellHeight = 35.1;
   const columns = 9;
   const boardWidth = (columns - 1) * cellWidth
     + presentationBubbleDiameter
     + cellWidth / 2;
   // Compact row pitch removes bubble gaps while this origin preserves the
   // established portrait danger threshold and row-11/row-12 semantics.
-  const boardY = 119;
+  const boardY = 140;
   const boardVisualRadius = presentationBubbleDiameter / 2;
   const physicsVisualRadius = bubbleDiameter / 2;
   const dangerLineY = boardY + 11 * cellHeight + boardVisualRadius + 10;

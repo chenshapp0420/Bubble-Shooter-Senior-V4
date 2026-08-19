@@ -31,7 +31,7 @@ import {
   WALL_HIT_AUDIO_SOURCE,
   createCoinCascadePlan
 } from '../src/game/AudioManager.js';
-import { BUBBLE_PALETTE } from '../src/game/BubbleRenderer.js';
+import { BUBBLE_PALETTE, SPECIAL_LABEL_STYLES } from '../src/game/BubbleRenderer.js';
 import { EffectsManager } from '../src/game/EffectsManager.js';
 import { checkGameOver, getBoardBubbleDangerGeometry, getBubbleWorldPosition, getDangerDistance, getDangerLineY, getRefillRowsForPressure, isBubbleAtDangerLine, isDangerLineReached, refillBoard, RefillSystem } from '../src/game/RefillSystem.js';
 import { MissTracker } from '../src/game/MissTracker.js';
@@ -644,6 +644,55 @@ test('Zen palette keeps all seven gameplay colors distinct and special chance oc
   assert.ok(GAME_CONFIG.specialBubbleChance < 0.2);
 });
 
+test('A-1 portrait presentation keeps bubbles tight and inside the mobile board', () => {
+  [
+    [360, 800],
+    [390, 844],
+    [412, 915]
+  ].forEach(([width, height]) => {
+    const config = getRuntimeGameConfig(width, height);
+    const diameter = config.presentation.bubbleDiameter;
+    const diagonalNeighborDistance = Math.hypot(
+      config.board.cellWidth / 2,
+      config.board.cellHeight
+    );
+    const boardLeft = (config.board.x - config.physics.visualBubbleRadius) * config.presentation.scale;
+    const boardRight = (
+      config.board.x
+      + (config.board.columns - 1) * config.board.cellWidth
+      + config.board.cellWidth / 2
+      + config.physics.visualBubbleRadius
+    ) * config.presentation.scale;
+
+    assert.equal(config.presentation.bubbleDiameter, config.board.cellWidth);
+    assert.ok(Math.abs(config.board.cellHeight - diameter * Math.sqrt(3) / 2) < 0.1);
+    assert.ok(diagonalNeighborDistance <= diameter + 1);
+    assert.ok(boardLeft >= 0);
+    assert.ok(boardRight <= config.presentation.cssWidth);
+  });
+});
+
+test('A-1 special label styles provide deterministic high contrast for all labels', () => {
+  SPECIAL_BUBBLE_LABELS.forEach((label) => {
+    const style = SPECIAL_LABEL_STYLES[label];
+    assert.ok(style);
+    assert.notEqual(style.fill, style.stroke);
+    assert.ok(style.shadow);
+  });
+  assert.equal(SPECIAL_LABEL_STYLES['貪'].fill, '#ffe36a');
+  assert.equal(SPECIAL_LABEL_STYLES['嗔'].fill, '#fffaf0');
+  assert.equal(SPECIAL_LABEL_STYLES['痴'].fill, '#315d9b');
+  assert.equal(SPECIAL_LABEL_STYLES['慢'].fill, '#274e2d');
+  assert.equal(SPECIAL_LABEL_STYLES['疑'].fill, '#fffaf0');
+});
+
+test('A-1 renderer keeps bubble interiors free of decorative texture arcs', async () => {
+  const source = await readFile(new URL('../src/game/BubbleRenderer.js', import.meta.url), 'utf8');
+  assert.match(source, /createRadialGradient/);
+  assert.doesNotMatch(source, /arc\(x - radius \* 0\.12/);
+  assert.doesNotMatch(source, /arc\(x, y \+ radius \* 0\.28/);
+});
+
 test('special bubbles support exactly the five required labels and preserve color', () => {
   assert.deepEqual(SPECIAL_BUBBLE_LABELS, ['貪', '嗔', '痴', '慢', '疑']);
   assert.equal(SPECIAL_BUBBLE_LABELS[2], '痴');
@@ -1036,9 +1085,9 @@ test('portrait starting board keeps large rendered clearance without changing de
 
     assert.equal(config.board.initialFillRows, 8);
     assert.equal(config.board.columns, 9);
-    assert.equal(config.presentation.bubbleDiameter, 38);
-    assert.equal(config.board.cellWidth, 38);
-    assert.equal(config.board.cellHeight, 38);
+    assert.equal(config.presentation.bubbleDiameter, 40.5);
+    assert.equal(config.board.cellWidth, 40.5);
+    assert.equal(config.board.cellHeight, 35.1);
     assert.ok((config.dangerLineY - lowest.bubbleBottom) * config.presentation.scale >= 100);
     assert.equal(lowest.crossed, false);
   });
@@ -1243,10 +1292,10 @@ test('Portrait runtime exposes one shoot lock authority and deadlock diagnostics
 
 test('Portrait deadlock recovery keeps visual configuration frozen', () => {
   const config = getRuntimeGameConfig(390, 844);
-  assert.equal(config.presentation.bubbleDiameter, 38);
+  assert.equal(config.presentation.bubbleDiameter, 40.5);
   assert.equal(config.board.columns, 9);
-  assert.equal(config.board.cellWidth, 38);
-  assert.equal(config.board.cellHeight, 38);
+  assert.equal(config.board.cellWidth, 40.5);
+  assert.equal(config.board.cellHeight, 35.1);
   assert.equal(config.board.initialFillRows, 8);
 });
 
@@ -1481,7 +1530,7 @@ test('Task 13 portrait geometry keeps next bubble beside the shooter and desktop
   const portrait = getRuntimeGameConfig(390, 844);
   assert.equal(portrait.shooter.nextY, portrait.shooter.y);
   assert.ok(portrait.shooter.nextX > portrait.shooter.x);
-  assert.equal(portrait.dangerLineY, 566);
+  assert.equal(portrait.dangerLineY, 556.35);
 });
 
 test('Task 14 rendered portrait shooter group stays inside CSS viewport space', () => {
@@ -1928,7 +1977,7 @@ test('danger boundary uses the authoritative rendered center and includes exact 
   }
 });
 
-test('portrait danger boundary uses the 38px rendered board radius', () => {
+test('portrait danger boundary uses the 40.5px rendered board radius', () => {
   const portrait = getRuntimeGameConfig(390, 700);
   const testConfig = {
     ...portrait,
@@ -1938,9 +1987,9 @@ test('portrait danger boundary uses the 38px rendered board radius', () => {
   board.removeBubbles(board.getOccupiedBubbles());
   const radius = getBoardVisualRadius(testConfig);
 
-  assert.equal(radius, 19);
-  assert.equal(testConfig.board.cellWidth, 38);
-  assert.equal(testConfig.board.cellHeight, 38);
+  assert.equal(radius, 20.25);
+  assert.equal(testConfig.board.cellWidth, 40.5);
+  assert.equal(testConfig.board.cellHeight, 35.1);
   assert.equal(testConfig.board.columns, 9);
 
   for (const [offset, expected] of [[-1, false], [0, true], [1, true]]) {

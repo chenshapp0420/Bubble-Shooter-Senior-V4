@@ -796,7 +796,7 @@ function drawScoreHud() {
   const chanceWarning = chances === 1;
   const warningPulse = chanceWarning ? 0.78 + Math.sin(performance.now() / 110) * 0.22 : 1;
   context.globalAlpha = warningPulse;
-  context.fillStyle = chanceWarning ? '#ffd36a' : 'rgba(226, 242, 255, 0.84)';
+  context.fillStyle = chanceWarning ? '#8B0000' : '#2F2418';
   context.font = `700 ${GAME_CONFIG.hud.score.fontSize}px system-ui, sans-serif`;
   context.textBaseline = 'middle';
   context.textAlign = 'left';
@@ -805,6 +805,7 @@ function drawScoreHud() {
   context.fillText(`STAGE ${stageManager.getStage()}`, GAME_CONFIG.hud.stage.x, GAME_CONFIG.hud.stage.baselineY);
   context.font = '700 12px system-ui, sans-serif';
   context.textAlign = 'right';
+  context.fillStyle = '#2F2418';
   context.fillText(`CHANCES  ${filledChances}${emptyChances}`, GAME_CONFIG.hud.chances.x, GAME_CONFIG.hud.chances.baselineY);
   context.restore();
 }
@@ -815,7 +816,7 @@ function drawHud() {
   const emptyChances = '○'.repeat(GAME_CONFIG.initialChances - chances);
 
   context.save();
-  context.fillStyle = 'rgba(226, 242, 255, 0.84)';
+  context.fillStyle = '#2F2418';
   context.font = '700 19px system-ui, sans-serif';
   context.textBaseline = 'middle';
   context.textAlign = 'left';
