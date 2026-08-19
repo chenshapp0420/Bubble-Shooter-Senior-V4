@@ -4,7 +4,7 @@ export const BUBBLE_PALETTE = {
   yellow: { base: '#e5d8ad', light: '#fffbed', shadow: '#9b8751', edge: '#fffef3' },
   green: { base: '#738857', light: '#dbe6bc', shadow: '#405538', edge: '#f0f3d7' },
   blue: { base: '#70888b', light: '#dceceb', shadow: '#3e595d', edge: '#edf7ee' },
-  purple: { base: '#8f748f', light: '#ead9e5', shadow: '#563f57', edge: '#f9eef4' },
+  purple: { base: '#9b7898', light: '#c5a8c0', shadow: '#755a73', edge: '#f4e6f0' },
   fluorescentPink: { base: '#a26778', light: '#f2d0d4', shadow: '#653746', edge: '#ffedf0' }
 };
 

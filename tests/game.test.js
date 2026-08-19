@@ -131,7 +131,7 @@ test('config exposes seven supported high-contrast bubble colors', () => {
   assert.equal(GAME_CONFIG.physics.physicsCollisionRadius, 23);
   assert.equal(BUBBLE_PALETTE.red.base, '#b58a35');
   assert.equal(BUBBLE_PALETTE.orange.base, '#a86f43');
-  assert.equal(BUBBLE_PALETTE.purple.base, '#8f748f');
+  assert.equal(BUBBLE_PALETTE.purple.base, '#9b7898');
   assert.equal(BUBBLE_PALETTE.fluorescentPink.base, '#a26778');
   assert.notEqual(BUBBLE_PALETTE.red.base, BUBBLE_PALETTE.orange.base);
   assert.notEqual(BUBBLE_PALETTE.purple.base, BUBBLE_PALETTE.fluorescentPink.base);
@@ -685,6 +685,21 @@ test('A-1 special label styles provide deterministic high contrast for all label
   assert.equal(SPECIAL_LABEL_STYLES['痴'].fill, '#315d9b');
   assert.equal(SPECIAL_LABEL_STYLES['慢'].fill, '#274e2d');
   assert.equal(SPECIAL_LABEL_STYLES['疑'].fill, '#fffaf0');
+});
+
+test('fixed Zen art integration keeps the approved source separate from gameplay art', async () => {
+  const source = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
+  assert.match(source, /zen-fixed-art\.png/);
+  assert.match(source, /drawFixedArtCrop/);
+  assert.doesNotMatch(source, /drawImage\(\s*fixedZenArt\s*,\s*0\s*,\s*0\s*,\s*1536\s*,\s*2048/);
+});
+
+test('A-1 purple palette is softer while remaining distinct', () => {
+  assert.equal(BUBBLE_PALETTE.purple.base, '#9b7898');
+  assert.equal(BUBBLE_PALETTE.purple.light, '#c5a8c0');
+  assert.equal(BUBBLE_PALETTE.purple.shadow, '#755a73');
+  assert.notEqual(BUBBLE_PALETTE.purple.base, BUBBLE_PALETTE.orange.base);
+  assert.notEqual(BUBBLE_PALETTE.purple.base, BUBBLE_PALETTE.yellow.base);
 });
 
 test('A-1 renderer keeps bubble interiors free of decorative texture arcs', async () => {

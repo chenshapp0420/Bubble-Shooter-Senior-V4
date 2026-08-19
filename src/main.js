@@ -52,6 +52,8 @@ import { getZenControlAt, getZenUiLayout } from './game/ZenUi.js';
 const FIXED_STEP_MS = 1000 / 60;
 const canvas = document.querySelector('#game-canvas');
 const context = canvas.getContext('2d');
+const fixedZenArt = new Image();
+fixedZenArt.src = '/zen-fixed-art.png';
 
 if (!context) {
   throw new Error('Canvas 2D context is unavailable.');
@@ -718,6 +720,29 @@ function handleLostPointerCapture(event) {
   }
 }
 
+function hasFixedZenArt() {
+  return fixedZenArt.complete && fixedZenArt.naturalWidth > 0;
+}
+
+function drawFixedArtCrop(sourceX, sourceY, sourceWidth, sourceHeight, destinationX, destinationY, destinationWidth, destinationHeight, alpha = 0.92) {
+  if (!hasFixedZenArt()) return false;
+  context.save();
+  context.globalAlpha = alpha;
+  context.drawImage(
+    fixedZenArt,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    destinationX,
+    destinationY,
+    destinationWidth,
+    destinationHeight
+  );
+  context.restore();
+  return true;
+}
+
 function drawBamboo(x, top, direction, height, unit) {
   const contextX = x;
   context.save();
@@ -856,26 +881,29 @@ function drawIncenseBurner(incense) {
 
 function drawZenLowerDecorations() {
   const layout = getZenUiLayout(GAME_CONFIG);
-  drawLotus(layout.lotusLeft.x, layout.lotusLeft.y, layout.lotusLeft.scale, '#d49a9a');
-  drawLotus(layout.lotusRight.x, layout.lotusRight.y, layout.lotusRight.scale, '#d0a06e');
-  drawNoviceMonk(layout.monk);
-  drawIncenseBurner(layout.incense);
+  const scale = layout.unit;
+  const fixedArtDrawn = hasFixedZenArt();
+  if (fixedArtDrawn) {
+    drawFixedArtCrop(0, 1220, 260, 560, layout.lotusLeft.x - 46 * scale, layout.lotusLeft.y - 72 * scale, 94 * scale, 104 * scale);
+    drawFixedArtCrop(1280, 1220, 256, 560, layout.lotusRight.x - 47 * scale, layout.lotusRight.y - 72 * scale, 94 * scale, 104 * scale);
+    drawFixedArtCrop(90, 1360, 405, 600, layout.monk.x - 42 * scale, layout.monk.y - 58 * scale, 88 * scale, 118 * scale);
+    drawFixedArtCrop(980, 1410, 430, 470, layout.incense.x - 48 * scale, layout.incense.y - 58 * scale, 98 * scale, 108 * scale);
+  } else {
+    drawLotus(layout.lotusLeft.x, layout.lotusLeft.y, layout.lotusLeft.scale, '#d49a9a');
+    drawLotus(layout.lotusRight.x, layout.lotusRight.y, layout.lotusRight.scale, '#d0a06e');
+    drawNoviceMonk(layout.monk);
+    drawIncenseBurner(layout.incense);
+  }
 }
 
 function drawZenControlBar() {
   const layout = getZenUiLayout(GAME_CONFIG);
   const { controlBar } = layout;
   context.save();
-  context.fillStyle = 'rgba(42, 35, 28, 0.76)';
-  context.strokeStyle = 'rgba(231, 194, 103, 0.72)';
-  context.lineWidth = 1.5;
-  context.beginPath();
-  context.roundRect(controlBar.x, controlBar.y, controlBar.width, controlBar.height, controlBar.height / 2);
-  context.fill();
-  context.stroke();
   controlBar.buttons.forEach((button) => {
-    context.fillStyle = '#b68a3b';
-    context.strokeStyle = '#f1d27b';
+    context.fillStyle = 'rgba(57, 42, 25, 0.88)';
+    context.strokeStyle = '#e7be5f';
+    context.lineWidth = 2;
     context.beginPath();
     context.arc(button.x, button.y, button.radius, 0, Math.PI * 2);
     context.fill();
@@ -969,7 +997,14 @@ function drawBackground() {
   // Bamboo stays at the frame edges and never crosses the board.
   drawBamboo(18 * unit, 0, 1, height * 0.58, unit);
   drawBamboo(width - 20 * unit, 0, -1, height * 0.48, unit);
-  drawPavilion(getZenUiLayout(GAME_CONFIG).pavilion, unit);
+  if (hasFixedZenArt()) {
+    drawFixedArtCrop(0, 0, 190, 980, 0, 0, 74 * unit, height * 0.63, 0.8);
+    drawFixedArtCrop(1340, 0, 196, 980, width - 74 * unit, 0, 74 * unit, height * 0.63, 0.8);
+    const pavilion = getZenUiLayout(GAME_CONFIG).pavilion;
+    drawFixedArtCrop(1010, 720, 440, 500, pavilion.x - 63 * unit, pavilion.y - 34 * unit, 126 * unit, 143 * unit, 0.72);
+  } else {
+    drawPavilion(getZenUiLayout(GAME_CONFIG).pavilion, unit);
+  }
 
   context.save();
   context.strokeStyle = 'rgba(55, 70, 54, 0.25)';
